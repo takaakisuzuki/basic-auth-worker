@@ -1,78 +1,78 @@
 # basic-auth-worker
 
-Cloudflare Workers で動作する軽量な **Basic 認証プロキシ** です。
-ルートに紐づけたリクエストに対して Basic 認証を要求し、認証を通過したリクエストのみオリジンへプロキシします。静的なオリジンや内部向けのサイトに、コードを変更せず手早くアクセス制限をかけたいときに利用できます。
+A lightweight **Basic authentication proxy** that runs on Cloudflare Workers.
+It requires Basic auth for requests bound to a route and proxies only authenticated requests to the origin. Useful when you want to quickly add access control to a static origin or an internal site without changing its code.
 
-## 特徴
+## Features
 
-- Cloudflare Workers 上で動作（追加のサーバー不要）
-- `Authorization: Basic` ヘッダーを検証し、未認証は `401 + WWW-Authenticate` を返却
-- 認証情報は Wrangler Secrets で管理（リポジトリにはコミットしない）
-- パスワードに `:` を含むケースにも対応
+- Runs on Cloudflare Workers (no extra server required)
+- Validates the `Authorization: Basic` header and returns `401 + WWW-Authenticate` when unauthenticated
+- Credentials are managed via Wrangler Secrets (never committed to the repo)
+- Handles passwords that contain `:`
 
-## 仕組み
+## How it works
 
-リクエストの `Authorization` ヘッダーをデコードし、`BASIC_AUTH_USER` / `BASIC_AUTH_PASS` と照合します。
+It decodes the request's `Authorization` header and compares it against `BASIC_AUTH_USER` / `BASIC_AUTH_PASS`.
 
-- 認証成功: `fetch(request)` でオリジンへそのままプロキシ
-- 認証失敗 / ヘッダー欠如: `401 Unauthorized` を返却
+- On success: proxies straight to the origin via `fetch(request)`
+- On failure / missing header: returns `401 Unauthorized`
 
-実装は `src/index.ts` を参照してください。
+See `src/index.ts` for the implementation.
 
-## 必要なもの
+## Requirements
 
 - Node.js / npm
-- Cloudflare アカウントと [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
-- ルーティング先のゾーン（`wrangler.jsonc` の `routes` を環境に合わせて変更）
+- A Cloudflare account and [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
+- A target zone (adjust `routes` in `wrangler.jsonc` to your environment)
 
-## セットアップ
+## Setup
 
 ```bash
 npm install
 ```
 
-ローカル用の環境変数を用意します（`.dev.vars.example` をコピー）。
+Prepare local environment variables (copy `.dev.vars.example`).
 
 ```bash
 cp .dev.vars.example .dev.vars
-# .dev.vars を編集して認証情報を設定
+# Edit .dev.vars to set your credentials
 ```
 
-## ローカル開発
+## Local development
 
 ```bash
 npm run dev
 ```
 
-## デプロイ
+## Deploy
 
-1. `wrangler.jsonc` の `account_id` と `routes` を自分の環境に合わせて変更します。
+1. Update `account_id` and `routes` in `wrangler.jsonc` to match your environment.
 
-2. 本番用のシークレットを設定します（`.dev.vars` は本番には反映されません）。
+2. Set production secrets (`.dev.vars` is not applied to production).
 
    ```bash
    npx wrangler secret put BASIC_AUTH_USER
    npx wrangler secret put BASIC_AUTH_PASS
    ```
 
-3. デプロイします。
+3. Deploy.
 
    ```bash
    npm run deploy
    ```
 
-## 設定項目
+## Configuration
 
-| 変数 | 説明 |
+| Variable | Description |
 | --- | --- |
-| `BASIC_AUTH_USER` | Basic 認証のユーザー名 |
-| `BASIC_AUTH_PASS` | Basic 認証のパスワード |
+| `BASIC_AUTH_USER` | Basic auth username |
+| `BASIC_AUTH_PASS` | Basic auth password |
 
-`wrangler.jsonc` の `routes` で、Worker を紐づけるパターン（例: `example.com/*`）を指定します。
+In `wrangler.jsonc`, use `routes` to specify the pattern the Worker is bound to (e.g. `example.com/*`).
 
-## 型の生成
+## Generating types
 
-Worker 設定に基づく型を生成・同期する場合:
+To generate/synchronize types based on your Worker configuration:
 
 ```bash
 npm run cf-typegen
